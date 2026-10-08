@@ -1,0 +1,187 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Thesis Writing Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: header + progress, two month grids colored by weekly phase, then a week-by-week checklist keyed to Wednesday meetings */
+:root{
+  --bg:#f5f7f4; --surface:#ffffff; --fg:#1b2420; --muted:#5d6b64; --line:#dde3dd;
+  --accent:#2f6b4f; --accent-soft:#e1eee6; --meet:#b4462e; --meet-soft:#f7e3dc; --final:#1b2420;
+  --display:"Newsreader", Georgia, serif; --body:"Public Sans", system-ui, sans-serif; --mono:"JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121815; --surface:#1a221e; --fg:#e4ebe6; --muted:#97a69e; --line:#2c3832;
+  --accent:#7cc39d; --accent-soft:#213229; --meet:#ec8a72; --meet-soft:#3a241e; --final:#e4ebe6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1a221e; --fg:#e4ebe6; --muted:#97a69e; --line:#2c3832;
+  --accent:#7cc39d; --accent-soft:#213229; --meet:#ec8a72; --meet-soft:#3a241e; --final:#e4ebe6; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55}
+.wrap{max-width:980px;margin:0 auto;padding:40px 20px 64px;display:flex;flex-direction:column;gap:36px}
+h1,h2,h3{font-family:var(--display);font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.1}
+h2{font-size:22px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+header{display:flex;flex-direction:column;gap:12px}
+.sub{color:var(--muted);max-width:62ch;margin:0}
+.stats{display:flex;flex-wrap:wrap;gap:28px;margin-top:6px}
+.stat b{display:block;font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block}
+.months{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.month{display:flex;flex-direction:column;gap:10px;min-width:0}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dow{font-family:var(--mono);font-size:10px;text-align:center;color:var(--muted);padding-bottom:2px}
+.day{aspect-ratio:1/1;max-width:100%;border-radius:5px;font-family:var(--mono);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.day.ph{color:var(--fg)}
+.day small{font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.day.meet{background:var(--meet-soft);color:var(--meet);font-weight:500;box-shadow:inset 0 0 0 1.5px var(--meet)}
+.day.final{background:var(--final);color:var(--bg);font-weight:500}
+.day.today{outline:2px solid var(--fg);outline-offset:1px}
+.weeks{display:flex;flex-direction:column;gap:14px}
+.week{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;display:grid;grid-template-columns:150px 1fr;gap:20px}
+.week.current{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.week.done{opacity:.6}
+.when{display:flex;flex-direction:column;gap:4px}
+.when .date{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--meet)}
+.week.last .when .date{color:var(--fg)}
+.when .span{font-size:12px;color:var(--muted)}
+.pill{align-self:flex-start;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:var(--accent);margin-top:4px}
+.body{display:flex;flex-direction:column;gap:10px;min-width:0}
+.body h3{font-size:18px}
+.goal{margin:0;color:var(--muted);font-size:14px}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:14px}
+label input{margin-top:3px;accent-color:var(--accent);width:16px;height:16px;flex:none}
+label input:checked + span{color:var(--muted);text-decoration:line-through}
+label input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sec{font-family:var(--mono);font-size:12px;color:var(--accent);margin-right:4px}
+.bring{font-size:13px;border-top:1px dashed var(--line);padding-top:10px;color:var(--muted)}
+.bring b{color:var(--fg);font-weight:600}
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.tips p{margin:4px 0 0;color:var(--muted);font-size:14px}
+.tips h3{font-size:16px}
+@media (max-width:640px){.week{grid-template-columns:1fr;gap:10px}.when{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:10px}.pill{margin-top:0}}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">MSc dissertation · Sentinel-2 inference pipeline</div>
+    <h1>Thesis Writing Calendar</h1>
+    <p class="sub">Seven Wednesday meetings, one chapter block due at each. You write the chapters closest to the code first, then the framing chapters, so the introduction and abstract describe what you actually built.</p>
+    <div class="stats">
+      <div class="stat"><b id="days">–</b><span>days to Mon 30 Nov</span></div>
+      <div class="stat"><b id="next">–</b><span>next meeting</span></div>
+      <div class="stat"><b id="pct">0%</b><span>tasks checked off</span></div>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="fill"></i></div>
+  </header>
+
+  <section class="month-wrap" style="display:flex;flex-direction:column;gap:14px">
+    <div class="legend">
+      <span><i class="sw" style="background:var(--meet-soft);box-shadow:inset 0 0 0 1.5px var(--meet)"></i>Wednesday meeting (deadline)</span>
+      <span><i class="sw" style="background:var(--final)"></i>Final submission</span>
+      <span><i class="sw" style="outline:2px solid var(--fg);outline-offset:-2px"></i>Today</span>
+      <span>Labels show which chapter you're writing that day</span>
+    </div>
+    <div class="months" id="months"></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2>Week by week</h2>
+    <div class="weeks" id="weeks"></div>
+  </section>
+
+</div>
+
+<script>
+const Y=2026;
+const weeks=[
+ {due:"2026-10-14",start:"2026-10-08",tag:"Ch 3",title:"Design and Implementation, part 1",
+  goal:"Start with the architecture while the code is fresh. This is the core of the thesis.",
+  tasks:[["3.1","Architecture overview and the main pipeline diagram (pre-, main, post-processing)"],["3.2","Technology stack: Python libraries, HDF5, Slurm"],["3.3","Data flow: tile → blocks → chips → inference"],["3.3","Shifted chips, overlap handling and stitching back to tiles (with a figure)"],["3.3","CPU and core allocation"]],
+  bring:"Draft of 3.1–3.3 and the architecture diagram"},
+ {due:"2026-10-21",start:"2026-10-15",tag:"Ch 3",title:"Design and Implementation, part 2",
+  goal:"Finish Chapter 3 and fold in last week's feedback.",
+  tasks:[["3.4","Batching strategy: run frequency and HDF5 chunking for memory"],["3.5","Data schema and output formats"],["3.6","Pipeline stages: ingestion, transformation, loading"],["3.6","Scheduling and deployment on Slurm"],["3.6","Error handling, logging and monitoring"],["—","Revise 3.1–3.3 from feedback"]],
+  bring:"Complete Chapter 3"},
+ {due:"2026-10-28",start:"2026-10-22",tag:"Ch 4",title:"Testing and Evaluation",
+  goal:"Turn your benchmark runs into tables and plots, then write around them.",
+  tasks:[["4.2","Collect performance numbers: time and compute per CPU (mean, max) and per full tile"],["4.2","Make results tables and charts"],["4.1","Unit and integration testing"],["4.3","Output validation and data quality checks"]],
+  bring:"Chapter 4 with all results figures"},
+ {due:"2026-11-04",start:"2026-10-29",tag:"Ch 2",title:"Background",
+  goal:"The reading-heavy chapter. Set up your reference manager this week if you haven't.",
+  tasks:[["2.1","Data engineering concepts: ETL vs ELT, batch vs streaming, warehousing, data quality"],["2.2","EO data formats: HDF5 and alternatives (Zarr, COG, NetCDF)"],["2.3","Related systems and existing approaches"],["—","Bibliography in order for Ch 2–4"]],
+  bring:"Chapter 2 and reference list"},
+ {due:"2026-11-11",start:"2026-11-05",tag:"Ch 1",title:"Introduction",
+  goal:"Now that the body exists, frame the problem and requirements to match it.",
+  tasks:[["1.1","Vegetation loss and how EO satellites track it"],["1.2","The data-volume challenge"],["1.3","Project context and objectives (bimonthly national inference; adaptable pipeline)"],["1.4","Requirements: stakeholders (DGT, map users), data sources, functional and non-functional"],["1.5","Dissertation structure"]],
+  bring:"Chapter 1"},
+ {due:"2026-11-18",start:"2026-11-12",tag:"Ch 5",title:"Discussion, Conclusions and Abstract",
+  goal:"Close the loop against the objectives from 1.3 and the requirements from 1.4.",
+  tasks:[["5.1","What worked well: model flexibility, CPU processing at scale, shifted-chip confidence"],["5.2","Challenges: tuning CPU/core counts, iterating on HDF5 layout"],["5.3","Limitations and future work"],["5.4","Conclusions: objectives revisited"],["Abs","Abstract"],["—","Assemble the full first draft"]],
+  bring:"Full first draft of the thesis"},
+ {due:"2026-11-25",start:"2026-11-19",tag:"Revise",title:"Full revision pass",
+  goal:"Work through feedback on the full draft and make it read as one document.",
+  tasks:[["—","Apply professor's feedback on the full draft"],["—","Check every requirement in 1.4 is evaluated in Ch 4 or discussed in Ch 5"],["—","Consistent terminology (tile, block, chip) and figure numbering"],["—","Captions, cross-references and citations"]],
+  bring:"Revised draft; confirm submission steps"},
+ {due:"2026-11-30",start:"2026-11-26",tag:"Submit",title:"Final polish and submission",last:true,
+  goal:"Buffer days. No new content.",
+  tasks:[["—","Final proofread (read it aloud, or out of order by section)"],["—","Formatting against the university template"],["—","Front matter: title page, acknowledgements, table of contents, lists of figures and tables"],["—","Export PDF and submit"]],
+  bring:"Submit by Monday 30 November"}
+];
+const d=s=>{const[a,b,c]=s.split("-").map(Number);return new Date(a,b-1,c)};
+const fmt=dt=>dt.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+const now=new Date(); const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+const key=dt=>dt.getFullYear()+"-"+(dt.getMonth()+1)+"-"+dt.getDate();
+let saved={}; try{saved=JSON.parse(localStorage.getItem("thesis-cal")||"{}")}catch(e){}
+const save=()=>{try{localStorage.setItem("thesis-cal",JSON.stringify(saved))}catch(e){}};
+
+// phase map for calendar
+const phase={};
+weeks.forEach(w=>{for(let t=d(w.start);t<=d(w.due);t.setDate(t.getDate()+1))phase[key(t)]=w;});
+
+const mEl=document.getElementById("months");
+[[9,"October"],[10,"November"]].forEach(([m,name])=>{
+  const box=document.createElement("div");box.className="month";
+  box.innerHTML=`<div class="eyebrow">${name} ${Y}</div>`;
+  const g=document.createElement("div");g.className="grid";
+  ["M","T","W","T","F","S","S"].forEach(x=>g.insertAdjacentHTML("beforeend",`<div class="dow">${x}</div>`));
+  const first=new Date(Y,m,1),lead=(first.getDay()+6)%7,n=new Date(Y,m+1,0).getDate();
+  for(let i=0;i<lead;i++)g.insertAdjacentHTML("beforeend","<div></div>");
+  for(let i=1;i<=n;i++){
+    const dt=new Date(Y,m,i),w=phase[key(dt)],c=["day"];let lab="";
+    if(w){c.push("ph");lab=w.tag}
+    if(w&&key(d(w.due))===key(dt)){c.push(w.last?"final":"meet");lab=w.last?"Due":"Meet"}
+    if(key(dt)===key(today))c.push("today");
+    g.insertAdjacentHTML("beforeend",`<div class="${c.join(" ")}" title="${w?w.title:""}">${i}${lab?`<small>${lab}</small>`:""}</div>`);
+  }
+  box.appendChild(g);mEl.appendChild(box);
+});
+
+const wEl=document.getElementById("weeks");
+weeks.forEach((w,wi)=>{
+  const cur=today>=d(w.start)&&today<=d(w.due), past=today>d(w.due);
+  const el=document.createElement("article");
+  el.className="week"+(cur?" current":"")+(past?" done":"")+(w.last?" last":"");
+  el.innerHTML=`<div class="when"><div class="eyebrow">${w.last?"Deadline":"Meeting "+(wi+1)}</div><div class="date">${fmt(d(w.due))}</div><div class="span">writing ${fmt(d(w.start))} – ${fmt(d(w.due))}</div><span class="pill">${cur?"This week · ":""}${w.tag}</span></div>
+  <div class="body"><h3>${w.title}</h3><p class="goal">${w.goal}</p><ul>${w.tasks.map((t,ti)=>{const id=`t${wi}-${ti}`;return `<li><label><input type="checkbox" id="${id}" ${saved[id]?"checked":""}><span><span class="sec">${t[0]}</span>${t[1]}</span></label></li>`}).join("")}</ul>
+  <div class="bring"><b>${w.last?"Goal:":"Bring to the meeting:"}</b> ${w.bring}</div></div>`;
+  wEl.appendChild(el);
+});
+
+function stats(){
+  const boxes=[...document.querySelectorAll("input[type=checkbox]")],done=boxes.filter(b=>b.checked).length,p=Math.round(done/boxes.length*100);
+  document.getElementById("pct").textContent=p+"%";document.getElementById("fill").style.width=p+"%";
+}
+document.addEventListener("change",e=>{if(e.target.type==="checkbox"){saved[e.target.id]=e.target.checked;save();stats();}});
+const end=d("2026-11-30");document.getElementById("days").textContent=Math.max(0,Math.round((end-today)/864e5));
+const nx=weeks.find(w=>!w.last&&d(w.due)>=today);document.getElementById("next").textContent=nx?fmt(d(nx.due)):"Done";
+stats();
+</script>
+
+</body></html>
