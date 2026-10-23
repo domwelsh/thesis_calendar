@@ -1,4 +1,8 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Thesis Writing Calendar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -87,10 +91,26 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .st[data-s="doing"]{background:var(--wip-soft);border-color:var(--wip);color:var(--wip)}
 .st[data-s="done"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .task[data-s="done"] .t{color:var(--muted);text-decoration:line-through}
+.sync{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:12px;font-size:13.5px}
+.syncrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.syncrow #sync-msg{flex:1 1 260px;min-width:0}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);flex:none}
+.sync[data-state="pending"]{border-color:var(--wip)}
+.sync[data-state="pending"] .dot{background:var(--wip)}
+.syncbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.syncbtns .more{color:var(--fg)}
+.exportp{display:flex;flex-direction:column;gap:10px}
+.exportp ol{margin:0;padding-left:20px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.exportp code{font-family:var(--mono);font-size:12px;color:var(--fg)}
+#export-text{width:100%;box-sizing:border-box;font:12px/1.5 var(--mono);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
 @media (max-width:760px){.board{grid-template-columns:1fr}}
 @media (max-width:640px){.week{grid-template-columns:1fr;gap:10px}.when{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:10px}.pill{margin-top:0}}
 @media (prefers-reduced-motion:reduce){.bar i{transition:none}}
 </style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
 
 <div class="wrap">
   <header>
@@ -124,6 +144,15 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   <section style="display:flex;flex-direction:column;gap:12px" id="board-sec">
     <h2>Task board</h2>
     <p class="boardnote">Move tasks with the buttons or drag them between columns. To do shows overdue work plus this week and next. <span id="savenote"></span></p>
+    <div class="sync" id="sync" hidden>
+      <div class="syncrow"><span class="dot" aria-hidden="true"></span><span id="sync-msg"></span>
+        <span class="syncbtns"><button type="button" class="more" id="export-btn">Export progress</button><button type="button" class="more" id="discard" hidden>Discard my changes</button></span></div>
+      <div id="export-panel" hidden class="exportp">
+        <ol><li>Download or copy the file below.</li><li>Replace <code>progress.json</code> in your repository (same folder as this page) with it.</li><li>Commit and push. Others see the update within a few minutes.</li></ol>
+        <textarea id="export-text" readonly rows="8" aria-label="progress.json contents"></textarea>
+        <div class="syncbtns"><button type="button" class="more" id="dl-btn">Download progress.json</button><button type="button" class="more" id="copy-btn">Copy</button><span id="copy-msg" class="count"></span></div>
+      </div>
+    </div>
     <div class="board" id="board"></div>
   </section>
 
@@ -236,11 +265,14 @@ function render(){
   document.getElementById("wipn").textContent=cols.doing.length;
 }
 
-// saving: shared store when available, browser storage otherwise
-let db=null,docRef=null,writing=false,dirty=false;
+// saving: shared store inside Claude; on other hosts (GitHub Pages) progress.json from the repo plus browser storage
+let db=null,docRef=null,writing=false,dirty=false,repoMode=false,repo=null,localUpdated=null;
 const note=document.getElementById("savenote");
+const syncEl=document.getElementById("sync");
+const LS="thesis-cal-v2";
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({updated:localUpdated,status}))}catch(e){}}
 async function flush(){
-  if(!docRef){try{localStorage.setItem("thesis-cal-v2",JSON.stringify(status))}catch(e){}return}
+  if(!docRef){localUpdated=new Date().toISOString();saveLocal();updateSync();return}
   if(writing){dirty=true;return}
   writing=true;
   try{await docRef.set({status:{...status},updated:new Date().toISOString()})}
@@ -248,6 +280,38 @@ async function flush(){
   writing=false;if(dirty){dirty=false;flush()}
 }
 function setStatus(id,s){if(st(id)===s)return;if(s==="todo")delete status[id];else status[id]=s;render();flush();}
+
+// progress.json export (GitHub Pages)
+const clean=o=>{const r={};all.forEach(t=>{if(o[t.id]&&o[t.id]!=="todo")r[t.id]=o[t.id]});return r};
+const diffCount=()=>{const a=clean(status),b=clean(repo?repo.status||{}:{});return all.filter(t=>(a[t.id]||"todo")!==(b[t.id]||"todo")).length};
+const exportJson=()=>JSON.stringify({updated:localUpdated||new Date().toISOString(),status:clean(status)},null,2)+"\n";
+function updateSync(){
+  if(!repoMode){syncEl.hidden=true;return}
+  syncEl.hidden=false;
+  const n=diffCount(),msg=document.getElementById("sync-msg");
+  syncEl.dataset.state=n?"pending":"ok";
+  msg.textContent=n?`${n} change${n===1?"":"s"} saved in this browser only. Export and commit progress.json so others see ${n===1?"it":"them"}.`
+    :repo?"The board matches progress.json in the repository.":"No progress.json found yet. Export one and add it next to this page.";
+  document.getElementById("discard").hidden=!(n&&repo);
+  const box=document.getElementById("export-text");if(!document.getElementById("export-panel").hidden)box.value=exportJson();
+}
+document.getElementById("export-btn").addEventListener("click",()=>{
+  const p=document.getElementById("export-panel");p.hidden=!p.hidden;
+  if(!p.hidden){document.getElementById("export-text").value=exportJson();document.getElementById("copy-msg").textContent=""}
+});
+document.getElementById("copy-btn").addEventListener("click",()=>{
+  const box=document.getElementById("export-text"),m=document.getElementById("copy-msg");box.value=exportJson();
+  const fallback=()=>{box.focus();box.select();m.textContent="Selected. Press Ctrl+C (Cmd+C on a Mac) to copy."};
+  try{navigator.clipboard.writeText(box.value).then(()=>{m.textContent="Copied."},fallback)}catch(e){fallback()}
+});
+document.getElementById("dl-btn").addEventListener("click",()=>{
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([exportJson()],{type:"application/json"}));
+  a.download="progress.json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+  document.getElementById("copy-msg").textContent="Downloaded progress.json. Replace the file in your repository with it.";
+});
+document.getElementById("discard").addEventListener("click",()=>{
+  if(!repo)return;status={...(repo.status||{})};localUpdated=null;try{localStorage.removeItem(LS)}catch(e){}render();updateSync();
+});
 
 document.addEventListener("click",e=>{
   const m=e.target.closest("[data-move]");if(m){setStatus(m.dataset.id,m.dataset.move);return}
@@ -263,12 +327,23 @@ bEl.addEventListener("drop",e=>{const c=e.target.closest(".col");if(c&&dragId){e
 const end=d("2026-11-30");document.getElementById("days").textContent=Math.max(0,Math.round((end-today)/864e5));
 const nx=weeks.find(w=>!w.last&&d(w.due)>=today);document.getElementById("next").textContent=nx?fmt(d(nx.due)):"Done";
 
-// first paint from browser storage, then switch to the saved board
-try{status=JSON.parse(localStorage.getItem("thesis-cal-v2")||"null")||legacyStatus()}catch(e){status=legacyStatus()}
+// first paint from browser storage, then load the saved board
+let local=null;
+try{const raw=JSON.parse(localStorage.getItem(LS)||"null");if(raw)local=raw.status?raw:{updated:null,status:raw,legacy:true}}catch(e){}
+status=local?{...local.status}:legacyStatus();localUpdated=local?local.updated:null;
 render();
+async function loadRepo(){
+  repoMode=true;
+  try{const r=await fetch("progress.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const j=await r.json();if(j&&typeof j.status==="object")repo=j}}catch(e){}
+  // the browser's copy wins only if it has edits newer than the repository file
+  const useLocal=local&&(local.legacy||!repo||(local.updated&&(!repo.updated||local.updated>repo.updated)));
+  if(!useLocal&&repo){status={...repo.status};localUpdated=null;try{localStorage.removeItem(LS)}catch(e){}}
+  else if(local&&local.legacy){localUpdated=new Date().toISOString();saveLocal()}
+  note.textContent="";render();updateSync();
+}
 (async()=>{
   try{db=window.claude&&window.claude.use?await window.claude.use("db"):null}catch(e){db=null}
-  if(!db){note.textContent="Progress is saved in this browser only.";return}
+  if(!db){loadRepo();return}
   docRef=db.doc("progress/main");let migrated=false;
   docRef.onSnapshot(snap=>{
     if(snap.exists){const s=(snap.data()||{}).status||{};if(!writing&&!dirty){status={...s};render()}}
@@ -277,4 +352,5 @@ render();
 })();
 </script>
 
-</body></html>
+</body>
+</html>
